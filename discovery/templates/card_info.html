@@ -1,0 +1,28 @@
+{% extends "home.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/information.css' %}">
+
+
+
+<section class="researcher-detail">
+    <div class="header">
+        <div class="header-wrapper">
+            <h1>{{ researcher.name }}</h1>
+            <a href="{% url 'backet_view' id_application %}" class="cart-icon">
+                <img src="http://localhost:9000/test/cart-icon.png" alt="Корзина">
+            </a>
+            
+        </div>
+    </div>
+    <img src="{{ researcher.image }}" alt="{{ researcher.name }}" class="researcher-image">
+    <div class="researcher-description">
+        <p>{{ researcher.details }}</p>
+    </div>
+    <div class="researcher-long-description">
+        {{ researcher.long_description|safe }}  <!-- Позволяем вывод HTML-тегов -->
+    </div>
+    
+</section>
+{% endblock %}

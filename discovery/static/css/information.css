@@ -1,0 +1,64 @@
+/* Шапка на всю ширину экрана */
+.header {
+    background-color: #607848;
+    width: 100%; /* Растягиваем шапку на всю ширину */
+    color: white;
+    padding: 10px 0; /* Вертикальные отступы */
+}
+
+/* Внутренний контейнер шапки */
+.header-wrapper {
+    max-width: 1000px; /* Ограничиваем ширину */
+    margin: 0 auto; /* Центрируем */
+    padding: 0 10px; /* Добавляем отступы по бокам */
+    display: flex; /* Используем flexbox для выравнивания */
+    align-items: center; /* Вертикальное выравнивание */
+}
+
+.header h1 {
+    color: white;
+    font-size: 40px;
+    margin: 0;
+}
+
+
+body {
+    background-image: url(https://exploration.marinersmuseum.org/wp-content/themes/agesofex/images/background.jpg);
+    background-size: cover; /* Масштабирует изображение так, чтобы оно покрывало весь экран */
+    background-position: center; /* Центрирует изображение */
+    background-attachment: fixed; /* Закрепляет фон, чтобы он не двигался при прокрутке */
+    background-repeat: no-repeat; /* Отключает повторение изображения */
+}
+.researcher-detail {
+    
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color:#f7f2e7;
+    border-radius: 20px;
+}
+
+.researcher-image {
+    width: 400px;
+    padding: 10px;
+    height: auto;
+    display: block;
+    margin: 0 auto 20px auto;
+    
+}
+
+.researcher-description {
+    font-size: 16px;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.researcher-long-description h2,
+.researcher-long-description h3 {
+    color: #000000;
+}
+
+.researcher-long-description p {
+    font-size: 14px;
+    line-height: 1.6;
+}

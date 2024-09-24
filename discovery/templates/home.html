@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
+    <title>Карточки исследователей</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <header>
+        <a href="{% url 'researchers' %}" class="home-link">Главная</a>
+        
+        {% block search_form %}
+        {% endblock %}
+
+        <a href="{% url 'backet_view' id_application %}" class="cart-icon">
+            <img src="http://localhost:9000/test/cart-icon.png" alt="Корзина">
+        </a>
+    </header>
+
+    <section class="content">
+        {% block content %}
+        <!-- Контент каждой страницы будет вставляться сюда -->
+        {% endblock %}
+    </section>
+       
+
+</body>
+</html>

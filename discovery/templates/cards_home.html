@@ -1,0 +1,37 @@
+{% extends "home.html" %}
+{% load static %}
+
+{% block search_form %}
+    <form method="GET" action="{% url 'researchers' %}" class="search-form">
+        <input type="text" name="q" placeholder="Введите имя исследователя..." value="{{ request.GET.q }}">
+        <button type="submit">Поиск</button>
+    </form>
+{% endblock %}
+
+{% block content %}
+<section class="card-container">
+    {% if researchers %}
+        {% for researcher in researchers %}
+        <div class="card">
+            <div class="card-header">ИССЛЕДОВАТЕЛЬ</div>
+            <img src="{{ researcher.image }}" alt="{{ researcher.name }}" class="card-image">
+            <div class="card-name">
+                <h3>{{ researcher.name }}</h3>
+            </div>
+            <div class="card-description">
+                <h4>Годы жизни:</h4>
+                <p>{{ researcher.years }}</p>
+            </div>
+            <div class="card-footer">
+                
+                <a href="{% url 'researcher_detail' researcher.id %}">
+                    <button>Подробнее</button>
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p>По вашему запросу ничего не найдено.</p>
+    {% endif %}
+</section>
+{% endblock %}
