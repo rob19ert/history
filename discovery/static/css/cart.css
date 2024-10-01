@@ -1,38 +1,31 @@
-/* cart.css */
-
 /* Основные стили для страницы корзины */
 body {
     font-family: Arial, sans-serif;
     background-color: #f7f2e7;
-    ;
     margin: 0;
     padding: 0;
 }
 
-/* Стили для шапки */
 header {
-    background-color: #607848;
-    color: white;
-    padding: 10px 20px;
-    text-align: center;
+    background-color: #607848; /* Зеленый цвет фона */
+    color: white;              /* Цвет текста */
+    padding: 10px 20px;       /* Отступы внутри заголовка */
+    text-align: left;          /* Выравнивание текста по левому краю */
+    position: relative;        /* Позволяет абсолютное позиционирование дочерних элементов, если нужно */
 }
 
 .home-button {
-    color: white;
-    text-decoration: none;
-    font-size: 18px;
-    font-weight: bold;
+    color: white;              /* Цвет текста кнопки */
+    text-decoration: none;     /* Убираем подчеркивание */
+    font-size: 18px;          /* Размер шрифта */
+    font-weight: bold;         /* Жирный шрифт */
+    padding: 10px 20px;       /* Отступы для кнопки */
+    margin: 0;                /* Убираем внешние отступы */
+    display: inline-block;     /* Устанавливаем кнопку как блочный элемент с возможностью установки отступов */
 }
 
 .home-button:hover {
     text-decoration: underline;
-}
-
-/* Основные стили для заголовка страницы */
-h1 {
-    text-align: center;
-    color: #333;
-    margin: 20px 0;
 }
 
 /* Стили для списка исследователей в корзине */
@@ -43,46 +36,111 @@ ul {
 }
 
 li {
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    margin: 10px auto;
-    padding: 20px;
-    max-width: 800px;
+    margin-bottom: 20px;
+}
+
+/* Карточка */
+.card {
     display: flex;
     align-items: center;
-    gap: 20px;
+    justify-content: space-between;
+    max-width: 900px;
+    margin: 20px auto;
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    border: 2px solid #ADD8E6; /* Голубая рамка */
+    position: relative;
 }
 
-img {
-    border-radius: 8px;
-    max-width: 150px;
-    height: auto;
+/* Стили для изображения */
+.card-image img {
+    width: 200px;
+    border-radius: 10px;
 }
 
-h2 {
-    margin: 0 0 10px 0;
-    color: #333;
-    object-fit: contain;
+/* Контент карточки */
+.card-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    margin-left: 20px;
+    width: 100%;
 }
 
-p {
-    margin: 0;
-    color: #666;
-    object-fit: contain;
-}
-
-.btn {
-    display: inline-block;
-    padding: 8px 16px;
-    background-color: #dc3545;
-    color: white;
-    text-decoration: none;
-    border-radius: 4px;
+/* Стили для названия */
+.card-content h2 {
+    font-size: 24px;
     font-weight: bold;
+    margin: 0 0 10px;
+    color: #333;
+}
+
+/* Стили для описания */
+.card-content p {
+    font-size: 16px;
+    color: #666;
     margin-top: 10px;
 }
 
-.btn:hover {
-    background-color: #c82333;
+/* Стили для списка открытий */
+.discoveries {
+    margin-top: 10px;
+}
+
+.discoveries span {
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.list {
+    padding: 5px 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+/* Овальный бейдж */
+.oval-badge {
+    background-color: #556b2f;
+    color: white;
+    padding: 5px 15px;
+    border-radius: 50px;
+    font-weight: bold;
+    font-size: 14px;
+    position: absolute;
+    top: 20px;
+    right: 20px;
+}
+
+/* Адаптивная верстка */
+@media (max-width: 768px) {
+    .card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .card-image img {
+        width: 100%;
+    }
+
+    .card-content {
+        margin-left: 0;
+        margin-top: 15px;
+    }
+
+    .oval-badge {
+        position: static;
+        margin-top: 10px;
+    }
+}
+
+button {
+    background-color: #e7e7e7;
+    width: 175px;
+    border: 1px solid #a84428;
+    border-radius: 5px;
+    padding: 10px 15px;
+    cursor: pointer;
+    margin: 2px;
+    font-weight: bold;
 }

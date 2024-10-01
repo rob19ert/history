@@ -3,7 +3,7 @@
 
 {% block search_form %}
     <form method="GET" action="{% url 'researchers' %}" class="search-form">
-        <input type="text" name="q" placeholder="Введите имя исследователя..." value="{{ request.GET.q }}">
+        <input type="text" name="researcherName" placeholder="Введите имя исследователя..." value="{{ request.GET.q }}">
         <button type="submit">Поиск</button>
     </form>
 {% endblock %}
@@ -14,16 +14,21 @@
         {% for researcher in researchers %}
         <div class="card">
             <div class="card-header">ИССЛЕДОВАТЕЛЬ</div>
-            <img src="{{ researcher.image }}" alt="{{ researcher.name }}" class="card-image">
+            <img src="{{ researcher.image_url }}" alt="{{ researcher.name }}" class="card-image">
             <div class="card-name">
                 <h3>{{ researcher.name }}</h3>
             </div>
             <div class="card-description">
                 <h4>Годы жизни:</h4>
-                <p>{{ researcher.years }}</p>
+                <p>{{ researcher.years_of_life }}</p>
             </div>
             <div class="card-footer">
-                
+                <form method="post" action="{% url 'add_service_to_request' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="service_id" value="{{ researcher.id }}">
+                    <button type="submit">Добавить в заявку</button>
+                </form> 
+                   
                 <a href="{% url 'researcher_detail' researcher.id %}">
                     <button>Подробнее</button>
                 </a>

@@ -16,10 +16,13 @@
         
         {% block search_form %}
         {% endblock %}
-
-        <a href="{% url 'backet_view' id_application %}" class="cart-icon">
-            <img src="http://localhost:9000/test/cart-icon.png" alt="Корзина">
+        <div class="cart_card">
+        <a href="{% if id_application %}{% url 'backet_view' id_application %}{% else %}{% url 'researchers' %}{% endif %}" class="cart-icon">
+            <img src="http://localhost:9000/geogistory/cart-icon.png" alt="Корзина">
+            <span class="cart_count"> {{count}} </span>
         </a>
+        
+    </div>
     </header>
 
     <section class="content">

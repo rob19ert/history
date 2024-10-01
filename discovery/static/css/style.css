@@ -28,6 +28,18 @@ body {
     align-items: center;
 }
 
+.cart_count {
+    position: absolute;
+    top: -10px;  /* Сдвиг вверх относительно корзины */
+    right: -10px; /* Сдвиг вправо относительно корзины */
+    background-color: rgb(0, 0, 0);  /* Фон для выделения числа */
+    color: white;  /* Цвет текста */
+    padding: 5px 10px;  /* Отступы для текста */
+    border-radius: 50%;  /* Круглая форма */
+    font-weight: bold;
+    font-size: 14px;
+}
+
 .home-link {
     position: absolute;
     top: 10px;

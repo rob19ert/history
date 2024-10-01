@@ -1,20 +1,44 @@
 from django.db import models
+from django.contrib.auth.models import User
 
-class Service(models.Model):  
-    name = models.CharField(max_length=200)
-    description = models.TextField()
-    image = models.URLField()  # Ссылка на изображение
-    discoveries = models.TextField()
+class Researchers(models.Model):
+    name = models.CharField(max_length=100)
+    bio = models.TextField(blank=True, null=True)
+    long_description = models.TextField(blank=True, null=True)
+    status = models.CharField(max_length=20, choices=[('active', 'Active'), ('deleted', 'Deleted')])
+    image_url = models.CharField(max_length=100, blank=True, null=True)
+    years_of_life = models.CharField(max_length=50)
+    nationality = models.CharField(max_length=50)
+    major_discovery = models.CharField(max_length=255)
 
     def __str__(self):
         return self.name
-
-class Cart(models.Model):
-    user = models.CharField(max_length=100)
-    services = models.ManyToManyField(Service, related_name='carts')  # связь многие ко многим (услуга - заявка)
+    
+class Request(models.Model):
+    STATUS_CHOICES = [
+        ('draft','Draft'),
+        ('deleted','Deleted'),
+        ('formed', 'Formes'),
+        ('completed', 'Completed'),
+        ('rejected', 'Rejected'),
+    ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True)
+    formed_at = models.DateTimeField(blank=True, null=True)
+    completed_at = models.DateTimeField(blank=True, null=True)
+    creator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_requests')
+    moderator = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='moderator_requests', blank=True)
+    region = models.CharField(max_length=100)
+    
 
     def __str__(self):
-        return f"Корзина {self.user}"
+        return f"Request by {self.creator} - Status: {self.status}"
+    
+class RequestResearchers(models.Model):
+    request = models.ForeignKey(Request, on_delete=models.CASCADE)
+    explorer = models.ForeignKey(Researchers, on_delete=models.CASCADE)
+    is_primary = models.BooleanField(default=True)
 
-    def service_count(self):
-        return self.services.count()  # Подсчет количества услуг в корзине
+    def __str__(self):
+        return f"{self.explorer.name} in request {self.request.id}"
+
