@@ -29,7 +29,7 @@ body {
     background-attachment: fixed; /* Закрепляет фон, чтобы он не двигался при прокрутке */
     background-repeat: no-repeat; /* Отключает повторение изображения */
 }
-.researcher-detail {
+.discoverer-detail {
     
     max-width: 1000px;
     margin: 0 auto;
@@ -38,7 +38,7 @@ body {
     border-radius: 20px;
 }
 
-.researcher-image {
+.discoverer-image {
     width: 400px;
     padding: 10px;
     height: auto;
@@ -47,18 +47,18 @@ body {
     
 }
 
-.researcher-description {
+.discoverer-description {
     font-size: 16px;
     color: #333;
     margin-bottom: 20px;
 }
 
-.researcher-long-description h2,
-.researcher-long-description h3 {
+.discoverer-long-description h2,
+.discoverer-long-description h3 {
     color: #000000;
 }
 
-.researcher-long-description p {
+.discoverer-long-description p {
     font-size: 14px;
     line-height: 1.6;
 }

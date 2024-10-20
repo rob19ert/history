@@ -11,7 +11,8 @@
     </header>
 
     {% if order %}
-        
+        <h2>Заявка№{{order.id}}</h2>
+        <p>Регион: Америка</p>
         <ul>
             {% for service in services %}
                 <li>
@@ -21,21 +22,7 @@
                         </div>
                         <div class="card-content">
                             <h2>{{ service.explorer.name }}</h2>
-                            <div class="discoveries">
-                                <span>Открытия:</span>
-                                <select class="list" disabled>
-                                    {% if service.explorer.major_discovery %}
-                                        <option value="{{ service.explorer.major_discovery }}">{{ service.explorer.major_discovery }}</option>
-                                    {% else %}
-                                        <option>Нет данных</option>
-                                    {% endif %}
-                                </select>
-                            </div>
-                            <p><strong>Описание:</strong> {{ service.explorer.bio }}</p>
                             <p><strong>Годы жизни:</strong> {{ service.explorer.years_of_life }}</p>
-                            <p><strong>Национальность:</strong> {{ service.explorer.nationality }}</p>
-                            <p><strong>Основное открытие:</strong> {{ service.explorer.major_discovery }}</p>
-                            
                             {% if service.is_primary %}
                                 <span class="oval-badge">Капитан</span>
                             {% endif %}

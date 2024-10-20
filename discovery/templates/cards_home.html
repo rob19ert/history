@@ -2,34 +2,34 @@
 {% load static %}
 
 {% block search_form %}
-    <form method="GET" action="{% url 'researchers' %}" class="search-form">
-        <input type="text" name="researcherName" placeholder="Введите имя исследователя..." value="{{ request.GET.q }}">
+    <form method="GET" action="{% url 'discoverers' %}" class="search-form">
+        <input type="text" name="discovererName" placeholder="Введите имя исследователя..." value="{{ request.GET.q }}">
         <button type="submit">Поиск</button>
     </form>
 {% endblock %}
 
 {% block content %}
 <section class="card-container">
-    {% if researchers %}
-        {% for researcher in researchers %}
+    {% if discoverers %}
+        {% for discoverer in discoverers %}
         <div class="card">
             <div class="card-header">ИССЛЕДОВАТЕЛЬ</div>
-            <img src="{{ researcher.image_url }}" alt="{{ researcher.name }}" class="card-image">
+            <img src="{{ discoverer.image_url }}" alt="{{ discoverer.name }}" class="card-image">
             <div class="card-name">
-                <h3>{{ researcher.name }}</h3>
+                <h3>{{ discoverer.name }}</h3>
             </div>
             <div class="card-description">
                 <h4>Годы жизни:</h4>
-                <p>{{ researcher.years_of_life }}</p>
+                <p>{{ discoverer.years_of_life }}</p>
             </div>
             <div class="card-footer">
                 <form method="post" action="{% url 'add_service_to_request' %}">
                     {% csrf_token %}
-                    <input type="hidden" name="service_id" value="{{ researcher.id }}">
+                    <input type="hidden" name="service_id" value="{{ discoverer.id }}">
                     <button type="submit">Добавить в заявку</button>
                 </form> 
                    
-                <a href="{% url 'researcher_detail' researcher.id %}">
+                <a href="{% url 'discoverer_detail' discoverer.id %}">
                     <button>Подробнее</button>
                 </a>
             </div>

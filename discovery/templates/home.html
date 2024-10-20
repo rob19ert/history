@@ -12,12 +12,12 @@
 </head>
 <body>
     <header>
-        <a href="{% url 'researchers' %}" class="home-link">Главная</a>
+        <a href="{% url 'discoverers' %}" class="home-link">Главная</a>
         
         {% block search_form %}
         {% endblock %}
         <div class="cart_card">
-        <a href="{% if id_application %}{% url 'backet_view' id_application %}{% else %}{% url 'researchers' %}{% endif %}" class="cart-icon">
+        <a href="{% if id_application %}{% url 'discovery_view' id_application %}{% else %}{% url 'discoverers' %}{% endif %}" class="cart-icon">
             <img src="http://localhost:9000/geogistory/cart-icon.png" alt="Корзина">
             <span class="cart_count"> {{count}} </span>
         </a>

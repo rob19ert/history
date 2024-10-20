@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 
-class Researchers(models.Model):
+class Discoverers(models.Model):
     name = models.CharField(max_length=100)
     bio = models.TextField(blank=True, null=True)
     long_description = models.TextField(blank=True, null=True)
@@ -14,7 +14,7 @@ class Researchers(models.Model):
     def __str__(self):
         return self.name
     
-class Request(models.Model):
+class Discovery(models.Model):
     STATUS_CHOICES = [
         ('draft','Draft'),
         ('deleted','Deleted'),
@@ -34,9 +34,9 @@ class Request(models.Model):
     def __str__(self):
         return f"Request by {self.creator} - Status: {self.status}"
     
-class RequestResearchers(models.Model):
-    request = models.ForeignKey(Request, on_delete=models.CASCADE)
-    explorer = models.ForeignKey(Researchers, on_delete=models.CASCADE)
+class DiscoveryDiscoverers(models.Model):
+    request = models.ForeignKey(Discovery, on_delete=models.CASCADE)
+    explorer = models.ForeignKey(Discoverers, on_delete=models.CASCADE)
     is_primary = models.BooleanField(default=True)
 
     def __str__(self):
