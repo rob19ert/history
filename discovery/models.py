@@ -28,7 +28,8 @@ class Discovery(models.Model):
     completed_at = models.DateTimeField(blank=True, null=True)
     creator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_requests')
     moderator = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='moderator_requests', blank=True)
-    region = models.CharField(max_length=100)
+    region = models.CharField(max_length=100, blank=True, null=True)
+    discoverers = models.ManyToManyField(Discoverers, through='DiscoveryDiscoverers', related_name='discoveries')
     
 
     def __str__(self):

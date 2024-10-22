@@ -27,8 +27,16 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'discovery',
+    'rest_framework',
+    'rest_framework.authtoken',
     
 ]
+MINIO_STORAGE_ENDPOINT = 'localhost:9000'
+MINIO_STORAGE_ACCESS_KEY = 'minio'
+MINIO_STORAGE_SECRET_KEY = 'minio124'
+MINIO_STORAGE_BUCKET_NAME = 'geogistory'
+MINIO_STORAGE_USE_HTTPS = False
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -76,6 +84,12 @@ DATABASES = {
         'HOST': 'localhost',
         'PORT': 5432, # Стандартный порт PostgreSQL
     }
+}
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
 }
 
 # Password validation
