@@ -2,16 +2,16 @@ from minio import Minio, S3Error
 from rest_framework.response import Response
 from django.conf import settings
 from rest_framework import status
-
-
-def add_image(discoverer, image):
-    try:
-        minio_client = Minio(
+minio_client = Minio(
             settings.MINIO_STORAGE_ENDPOINT,
             access_key=settings.MINIO_STORAGE_ACCESS_KEY,
             secret_key=settings.MINIO_STORAGE_SECRET_KEY,
             secure=False
         )
+
+def add_image(discoverer, image):
+    try:
+        
         bucket_name = settings.MINIO_STORAGE_BUCKET_NAME
         file_name = f"{discoverer.id}/{image.name}"
 
@@ -22,3 +22,12 @@ def add_image(discoverer, image):
         return Response({'message': 'Image uploaded successfully'}, status=status.HTTP_200_OK)
     except S3Error as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+def delete_image(object_name):
+    """Удалить изображение из MinIO."""
+    bucket_name = settings.MINIO_BUCKET_NAME
+    try:
+        minio_client.remove_object(bucket_name, object_name)
+    except S3Error as e:
+        raise e

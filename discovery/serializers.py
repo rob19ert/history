@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from .models import Discoverers, Discovery, DiscoveryDiscoverers
 from django.contrib.auth.models import User
+from collections import OrderedDict
+from rest_framework.authtoken.admin import User
 
 class DiscoverersSerializer(serializers.ModelSerializer):
     name = serializers.CharField(max_length=255)
@@ -15,6 +17,13 @@ class DiscoverersSerializer(serializers.ModelSerializer):
     class Meta:
         model = Discoverers
         fields = ['id', 'name', 'bio', 'long_description', 'status', 'image_url', 'years_of_life', 'nationality', 'major_discovery']
+
+        def get_fields(self):
+            new_fields = OrderedDict()
+            for name, field in super().get_fields().items():
+                field.required = False
+                new_fields[name] = field
+            return new_fields 
 
 
 class DiscoverySerializer(serializers.ModelSerializer):
@@ -63,3 +72,12 @@ class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['username', 'email', 'first_name', 'last_name', 'is_staff']
+
+
+
+class UserSerializer(serializers.ModelSerializer):
+    is_staff = serializers.BooleanField(default=False, required=False)
+    is_superuser = serializers.BooleanField(default=False, required=False)
+    class Meta:
+        model = User
+        fields = ['email', 'password', 'is_staff', 'is_superuser']

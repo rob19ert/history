@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     'discovery',
     'rest_framework',
     'rest_framework.authtoken',
+    'drf_yasg',
     
 ]
 MINIO_STORAGE_ENDPOINT = 'localhost:9000'
@@ -89,7 +90,12 @@ DATABASES = {
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
     ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+    ]
 }
 
 # Password validation
