@@ -6,7 +6,7 @@ from rest_framework.decorators import api_view
 from minio import Minio, S3Error
 from django.conf import settings
 from .models import Discoverers, Discovery, DiscoveryDiscoverers
-from .serializers import DiscoverersSerializer, DiscoverySerializer, DiscoveryDiscoverersSerializer, RegisterSerializer, UserUpdateSerializer, UserSerializer
+from .serializers import DiscoverersSerializer, DiscoverySerializer, DiscoveryDiscoverersSerializer, RegisterSerializer, UserUpdateSerializer, UserSerializer,AddDiscovererToDraftSerializer
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.utils import timezone
 from django.utils.dateparse import parse_date
@@ -29,21 +29,18 @@ from rest_framework import status, permissions
 from rest_framework.decorators import authentication_classes
 from drf_yasg import openapi
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication
-#import redis
+import redis
 import uuid
 
-#session_storage = redis.StrictRedis(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
-
-# Permissions
-class IsAdmin(permissions.BasePermission):
-    def has_permission(self, request, view):
-        return request.user and request.user.is_staff
-
+session_storage = redis.StrictRedis(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
 
 class IsManager(permissions.BasePermission):
     def has_permission(self, request, view):
-        return request.user.groups.filter(name='Manager').exists()
+        return bool(request.user and (request.user.is_staff or request.user.is_superuser))
 
+class IsAdmin(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_superuser)
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
@@ -78,6 +75,7 @@ def login_view(request):
     # Попытка аутентификации пользователя
     user = authenticate(request, username=username, password=password)
     if user is not None:
+       
         # Вход пользователя в систему
         login(request, user)  # Django автоматически установит cookie для сессии
         random_key = str(uuid.uuid4())
@@ -88,7 +86,7 @@ def login_view(request):
     else:
         # Ошибка логина
         return Response({'status': 'error', 'error': 'login failed'}, status=400)
-
+    
 @api_view(['POST'])
 def logout_view(request):
     logout(request._request)
@@ -103,7 +101,7 @@ minio_client = Minio(
 )
 
 class DiscovererList(APIView):
-    permission_classes = [IsAuthenticated]
+    
     model_class = Discoverers
     serializer_class = DiscoverersSerializer
 
@@ -125,9 +123,9 @@ class DiscovererList(APIView):
         discoverers = Discoverers.objects.filter(status='active')
 
         # Фильтрация по имени, если оно передано в запросе
-        name = request.query_params.get('name')
-        if name:
-            discoverers = discoverers.filter(name__icontains=name)
+        discoverer_name = request.data.get('discovererName')
+        if discoverer_name:
+            discoverers = discoverers.filter(name__icontains=discoverer_name)
 
         # Сериализация данных
         serializer = DiscoverersSerializer(discoverers, many=True)
@@ -151,6 +149,7 @@ class DiscovererList(APIView):
         request_body=DiscoverersSerializer,
         responses={201: DiscoverersSerializer, 400: "Ошибка валидации"},
     )
+    @method_permission_classes([IsAdmin])
     def post(self, request, format=None):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
@@ -185,6 +184,7 @@ class DiscoverersDetail(APIView):
         responses={200: DiscoverersSerializer, 400: "Ошибка валидации", 404: "Не найден"},
     )
 
+    @method_permission_classes([IsAdmin])
     # Обновляет информацию о первооткрывателе (только активные записи)
     def put(self, request, pk, format=None):
         discoverer = get_object_or_404(self.model_class, pk=pk)
@@ -198,7 +198,7 @@ class DiscoverersDetail(APIView):
         operation_summary="Удалить первооткрывателя",
         responses={204: "Удалено", 404: "Не найден"},
     )
-
+    @method_permission_classes([IsAdmin])
     # Удаляет первооткрывателя (мягкое удаление, ставит статус 'deleted')
     def delete(self, request, pk, format=None):
         discoverer = get_object_or_404(self.model_class, pk=pk)
@@ -212,103 +212,116 @@ class DiscoverersDetail(APIView):
         
         return Response({'message': "Первооткрыватель успешно добавлен"}, status=status.HTTP_204_NO_CONTENT)
     
-class AddDiscovererToDraft(APIView):  # Изменено имя класса на более подходящее
+class AddDiscovererToDraft(APIView):  # Добавление исследователя в черновик
+    model_class = DiscoveryDiscoverers  # Указываем модель, с которой работаем
+    serializer_class = AddDiscovererToDraftSerializer  # Указываем сериализатор
     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
-        creator = request.user  # Получаем текущего аутентифицированного пользователя
-        explorer_id = request.data.get('explorer_id')
-
-        # Проверка наличия explorer_id в запросе
-        if not explorer_id:
-            return Response({"error": "Не предоставлен explorer_id"}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Проверка существования исследователя
+    @swagger_auto_schema(
+        operation_description="Добавление исследователя в черновик",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'explorer_id': openapi.Schema(type=openapi.TYPE_INTEGER, description="ID исследователя"),
+            },
+            required=['explorer_id']
+        ),
+        responses={
+            201: "Успешно добавлено",
+            400: "Некорректные данные",
+            404: "Исследователь не найден",
+        }
+    )
+    def post(self, request, format=None):
+        # Получаем исследователя или создаём черновик
         try:
-            discoverer = Discoverers.objects.get(id=explorer_id)
-        except Discoverers.DoesNotExist:
-            return Response({"error": "Исследователь не найден"}, status=status.HTTP_404_NOT_FOUND)
+            discovery = Discovery.objects.get(creator=request.user, status='draft')
+        except Discovery.DoesNotExist:
+            discovery = Discovery.objects.create(
+                creator=request.user,
+                status='draft',
+                region=None,
+                completed_at=None,
+                formed_at=None,
+                moderator=None,
+            )
 
-        # Получение или создание запроса в статусе 'draft'
-        discovery, created = Discovery.objects.get_or_create(
-            creator=creator,
-            status='draft',
-            defaults={
-                'region': None,
-                'completed_at': None,
-                'formed_at': None,
-                'moderator': None,
-            }
-        )
+        # Добавляем ID черновика в данные для сериализатора
+        request.data["discovery_id"] = discovery.id
 
-        # Проверка на наличие исследователя в запросе
-        if DiscoveryDiscoverers.objects.filter(request=discovery, explorer=discoverer).exists():
-            return Response({'error': 'Исследователь уже добавлен'}, status=status.HTTP_400_BAD_REQUEST)
+        # Используем сериализатор для валидации данных
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                "message": "Исследователь успешно добавлен",
+                "discovery_id": discovery.id
+            }, status=status.HTTP_201_CREATED)
 
-        # Добавление исследователя в запрос
-        DiscoveryDiscoverers.objects.create(
-            request=discovery,
-            explorer=discoverer,
-            is_primary=True  # Здесь можно установить значение по умолчанию
-        )
+        # Возвращаем ошибки валидации
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response({
-            "message": "Исследователь успешно добавлен",
-            "discovery_id": discovery.id  # Возвращаем ID запроса для дальнейшего использования
-        }, status=status.HTTP_201_CREATED)
 
 class DiscoveryList(APIView):
-    permission_classes=[IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     model_class = Discovery
     serializer_class = DiscoverySerializer
 
     @swagger_auto_schema(
         operation_summary="Получить список открытий",
-        responses={200: DiscoverySerializer(many=True)},
         manual_parameters=[
             openapi.Parameter(
-                'status',
-                openapi.IN_QUERY,
+                'status', openapi.IN_QUERY,
                 description="Фильтрация по статусу открытия",
-                type=openapi.TYPE_STRING,
-                required=False
+                type=openapi.TYPE_STRING
             ),
             openapi.Parameter(
-                'start_date',
-                openapi.IN_QUERY,
+                'start_date', openapi.IN_QUERY,
                 description="Фильтрация по начальной дате",
-                type=openapi.TYPE_STRING,
-                format=openapi.FORMAT_DATE,
-                required=False
+                type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE
             ),
             openapi.Parameter(
-                'end_date',
-                openapi.IN_QUERY,
+                'end_date', openapi.IN_QUERY,
                 description="Фильтрация по конечной дате",
-                type=openapi.TYPE_STRING,
-                format=openapi.FORMAT_DATE,
-                required=False
+                type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE
             ),
-        ]
+        ],
+        responses={
+            200: openapi.Response(
+                description="Список открытий",
+                schema=DiscoverySerializer(many=True)
+            ),
+            400: openapi.Response(description="Некорректные параметры фильтрации")
+        }
     )
-
-    # Возвращает список заявок, кроме удаленных и черновика
     def get(self, request, format=None):
-        discoveries = self.model_class.objects.exclude(status__in = ['deleted', 'draft'])
         status_filter = request.query_params.get('status', None)
-        start_date = request.query_params.get('start_date',None)
+        start_date = request.query_params.get('start_date', None)
         end_date = request.query_params.get('end_date', None)
 
+        # Исключаем черновики и удаленные записи
+        if request.user.is_staff:
+            discoveries = self.model_class.objects.exclude(status__in=['draft', 'deleted']).all()
+        else:
+            discoveries = self.model_class.objects.exclude(status__in=['draft', 'deleted']).filter(creator=request.user).all()
+
+        # Применение фильтров
         if status_filter:
-            discoveries = discoveries.filter(status = status_filter)
-
+            discoveries = discoveries.filter(status=status_filter)
+        
         if start_date and end_date:
-            start_date = parse_date(start_date)
-            end_date = parse_date(end_date)
-            discoveries = discoveries.filter(submit_sate__range=[start_date, end_date])
+            try:
+                start_date = parse_date(start_date)
+                end_date = parse_date(end_date)
+                discoveries = discoveries.filter(submit_sate__range=[start_date, end_date])
+            except (ValueError, TypeError):
+                return Response({"error": "Некорректный формат дат"}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Сериализация и возврат данных
         serializer = self.serializer_class(discoveries, many=True)
-        return Response(serializer.data)
+        resp = serializer.data
+        return Response(resp)
+
 
 
 class DiscoveryListDetail(APIView):

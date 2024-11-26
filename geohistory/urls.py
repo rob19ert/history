@@ -44,7 +44,7 @@ urlpatterns = [
     path('discoveries/<int:pk>/complete_or_reject/', CompleteOrRejectDiscovery.as_view(), name='discovery-complete-reject'),
     path('discoverers/<int:pk>/upload-image/', UploadImageForDiscover.as_view(), name='upload-image'),
     #path('register/', UserViewSet.as_view(), name='register'),
-    path('login/', login_view, name='login'),
+    path('api/login/', login_view, name='login'),
     path('update-profile/', UserUpdate.as_view(), name='user-update'),
     path('api/', include(router.urls)),  # Роуты для пользователей через роутер
     path('logout/', logout_view, name='logout'),

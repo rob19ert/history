@@ -80,4 +80,53 @@ class UserSerializer(serializers.ModelSerializer):
     is_superuser = serializers.BooleanField(default=False, required=False)
     class Meta:
         model = User
-        fields = ['email', 'password', 'is_staff', 'is_superuser']
+        fields = ['username', 'email', 'password', 'is_staff', 'is_superuser']
+
+    def create(self, validated_data):
+        user = User(
+            username=validated_data['username'],
+            email=validated_data['email'],
+            is_staff=validated_data['is_staff'],
+            is_superuser=validated_data['is_superuser']
+        )
+        user.set_password(validated_data['password'])
+        user.save()
+        return user
+    
+
+class AddDiscovererToDraftSerializer(serializers.ModelSerializer):
+    explorer_id = serializers.PrimaryKeyRelatedField(
+        queryset=Discoverers.objects.filter(status='active'),
+        source='explorer',
+        write_only=True
+    )
+    discovery_id = serializers.PrimaryKeyRelatedField(
+        queryset=Discovery.objects.filter(status='draft'),
+        source='request',
+        write_only=True
+    )
+    is_primary = serializers.BooleanField(default=False)
+
+    class Meta:
+        model = DiscoveryDiscoverers
+        fields = ['explorer_id', 'discovery_id', 'is_primary']
+
+    def validate(self, data):
+        explorer = data.get('explorer')
+        discovery = data.get('request')
+
+        # Дополнительные проверки, если нужно
+        if not discovery:
+            raise serializers.ValidationError({"discovery_id": "Черновик открытия не найден или не указан."})
+
+        if not explorer:
+            raise serializers.ValidationError({"explorer_id": "Исследователь не найден или не указан."})
+
+        # Проверка, чтобы не добавлять дубликаты
+        if DiscoveryDiscoverers.objects.filter(request=discovery, explorer=explorer).exists():
+            raise serializers.ValidationError({"detail": "Этот исследователь уже добавлен в черновик."})
+
+        return data
+
+    def create(self, validated_data):
+        return DiscoveryDiscoverers.objects.create(**validated_data)
