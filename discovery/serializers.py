@@ -3,6 +3,9 @@ from .models import Discoverers, Discovery, DiscoveryDiscoverers
 from django.contrib.auth.models import User
 from collections import OrderedDict
 from rest_framework.authtoken.admin import User
+from django.contrib.auth.hashers import make_password
+from django.utils.timezone import localtime
+import pytz
 
 class DiscoverersSerializer(serializers.ModelSerializer):
     name = serializers.CharField(max_length=255)
@@ -18,25 +21,42 @@ class DiscoverersSerializer(serializers.ModelSerializer):
         model = Discoverers
         fields = ['id', 'name', 'bio', 'long_description', 'status', 'image_url', 'years_of_life', 'nationality', 'major_discovery']
 
-        def get_fields(self):
-            new_fields = OrderedDict()
-            for name, field in super().get_fields().items():
-                field.required = False
-                new_fields[name] = field
-            return new_fields 
-
+    def get_fields(self):
+        fields = super().get_fields()
+        for field in fields.values():
+            field.required = False
+        return fields
 
 class DiscoverySerializer(serializers.ModelSerializer):
     creator_login = serializers.CharField(source='creator.username', read_only=True)
     moderator_login = serializers.CharField(source='moderator.username', read_only=True, allow_null=True)
     region = serializers.CharField(max_length=255)
     discoverers = DiscoverersSerializer(many=True, read_only=True)
-    
+
+    created_at = serializers.SerializerMethodField()
+    formed_at = serializers.SerializerMethodField()
+    completed_at = serializers.SerializerMethodField()
+
+    def get_local_time(self, dt):
+        """Конвертирует время в московский часовой пояс и форматирует в стиль 'дд.мм.гггг чч:мм:сс'."""
+        if dt:
+            moscow_tz = pytz.timezone("Europe/Moscow")
+            return localtime(dt, moscow_tz).strftime("%d.%m.%Y %H:%M:%S")  # Российский формат
+        return None
+
+    def get_created_at(self, obj):
+        return self.get_local_time(obj.created_at)
+
+    def get_formed_at(self, obj):
+        return self.get_local_time(obj.formed_at)
+
+    def get_completed_at(self, obj):
+        return self.get_local_time(obj.completed_at)
+
     class Meta:
         model = Discovery
-        fields = ['id', 'status', 'created_at', 'formed_at', 'completed_at', 'creator_login', 'moderator_login', 'region', 'discoverers']
+        fields = ['id', 'status', 'created_at', 'formed_at', 'completed_at', 'creator_login', 'moderator_login', 'region', 'discoverers', 'qr']
         read_only_fields = ['created_at', 'formed_at', 'completed_at', 'creator_login', 'moderator_login']
-
 
 class DiscoveryDiscoverersSerializer(serializers.ModelSerializer):
     explorer = DiscoverersSerializer()
@@ -53,7 +73,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['username', 'password', 'email', 'first_name', 'last_name', 'is_staff']
+        fields = ['id','username', 'password', 'email', 'first_name', 'last_name', 'is_staff']
 
     def create(self, validated_data):
         user = User(
@@ -71,7 +91,14 @@ class RegisterSerializer(serializers.ModelSerializer):
 class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['username', 'email', 'first_name', 'last_name', 'is_staff']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_staff', 'password']
+        extra_kwargs = {'password': {'write_only': True, 'required': False}}
+
+    def update(self, instance, validated_data):
+        if 'password' in validated_data and validated_data['password']:
+            validated_data['password'] = make_password(validated_data['password'])
+        return super().update(instance, validated_data)
+
 
 
 
@@ -80,7 +107,7 @@ class UserSerializer(serializers.ModelSerializer):
     is_superuser = serializers.BooleanField(default=False, required=False)
     class Meta:
         model = User
-        fields = ['username', 'email', 'password', 'is_staff', 'is_superuser']
+        fields = ['id','username', 'email', 'password', 'is_staff', 'is_superuser']
 
     def create(self, validated_data):
         user = User(

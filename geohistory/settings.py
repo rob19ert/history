@@ -30,16 +30,19 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'drf_yasg',
+    'corsheaders',
     
 ]
-MINIO_STORAGE_ENDPOINT = 'localhost:9000'
-MINIO_STORAGE_ACCESS_KEY = 'minio'
-MINIO_STORAGE_SECRET_KEY = 'minio124'
-MINIO_STORAGE_BUCKET_NAME = 'geogistory'
-MINIO_STORAGE_USE_HTTPS = False
 
+# MinIO Storage Settings
+AWS_S3_ENDPOINT_URL = 'localhost:9000'  # Убедись, что MinIO работает на этом порту
+AWS_ACCESS_KEY_ID = 'minio'
+AWS_SECRET_ACCESS_KEY = 'minio124'
+AWS_STORAGE_BUCKET_NAME = 'geogistory'
+AWS_S3_USE_SSL = False
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -48,7 +51,37 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     
+    
 ]
+
+# Настройка CORS для корректной работы с frontend'ом
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3003",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:3001",
+    "http://192.168.67.132:3001",
+    "http://localhost:3002",
+    "https://localhost:3003",
+    "https://localhost:3000",
+    "https://127.0.0.1:3000",
+    "https://localhost:3001",
+    "https://localhost:3002",
+    "https://192.168.67.132:3001",
+]
+CORS_ALLOW_CREDENTIALS = True  # Разрешаем передавать cookies
+CORS_ALLOW_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+
+CORS_ALLOW_HEADERS = [
+    'content-type',
+    'authorization',
+    'x-csrftoken',
+    "x-requested-with",
+    'X-CSRFToken',  # <-- Добавляем этот заголовок
+
+]
+APPEND_SLASH = True
+
 
 ROOT_URLCONF = 'geohistory.urls'
 
@@ -101,6 +134,22 @@ REST_FRAMEWORK = {
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
+# CSRF-настройки
+CSRF_COOKIE_NAME = 'csrftoken'
+CSRF_COOKIE_HTTPONLY = False  # Разрешаем JS читать токен
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:3002",
+    "http://localhost:8000",  # 🔥 Добавляем API-сервер!
+    "https://localhost:3000",
+    "https://localhost:3001",
+    "https://localhost:8000",
+    "https://localhost:3002",
+    "https://192.168.67.132:3001",
+]
+
+
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -122,12 +171,16 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
 
-USE_I18N = True
-
+TIME_ZONE = 'Europe/Moscow'
 USE_TZ = True
 
+CSRF_COOKIE_NAME = "csrftoken"
+CSRF_COOKIE_HTTPONLY = False  # Должно быть False, чтобы JS мог читать куки
+CSRF_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SECURE = False  # Для localhost должно быть False
+SESSION_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SECURE = False  # Для локального тестирования должно быть False
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/

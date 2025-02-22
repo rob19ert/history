@@ -15,7 +15,7 @@ def add_image(discoverer, image):
         bucket_name = settings.MINIO_STORAGE_BUCKET_NAME
         file_name = f"{discoverer.id}/{image.name}"
 
-        minio_client.put_object(bucket_name, file_name, image, len(image))
+        minio_client.put_object(bucket_name, file_name, image, image.size)
         discoverer.image_url = f"{settings.MINIO_STORAGE_ENDPOINT}/{bucket_name}/{file_name}"
         discoverer.save()
 

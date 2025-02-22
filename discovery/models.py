@@ -30,6 +30,7 @@ class Discovery(models.Model):
     moderator = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='moderator_requests', blank=True)
     region = models.CharField(max_length=100, blank=True, null=True)
     discoverers = models.ManyToManyField(Discoverers, through='DiscoveryDiscoverers', related_name='discoveries')
+    qr = models.TextField(null=True, blank=True)
     
 
     def __str__(self):

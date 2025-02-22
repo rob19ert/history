@@ -17,7 +17,6 @@ from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.serializers import AuthTokenSerializer
 from rest_framework.authtoken.views import ObtainAuthToken
 from django.contrib.auth.models import update_last_login
-from .utils import add_image, delete_image
 from drf_yasg.utils import swagger_auto_schema
 from django.contrib.auth import authenticate, login, logout
 from django.http import HttpResponse
@@ -27,10 +26,13 @@ from rest_framework.decorators import permission_classes
 from rest_framework import viewsets
 from rest_framework import status, permissions
 from rest_framework.decorators import authentication_classes
+from .minio import add_pic, delete_image, process_file_upload
 from drf_yasg import openapi
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 import redis
 import uuid
+from .qr_generate import generate_discovery_qr
+
 
 session_storage = redis.StrictRedis(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
 
@@ -72,19 +74,16 @@ def method_permission_classes(classes):
 def login_view(request):
     username = request.data.get("username")
     password = request.data.get("password")
-    # Попытка аутентификации пользователя
+
     user = authenticate(request, username=username, password=password)
     if user is not None:
-       
-        # Вход пользователя в систему
-        login(request, user)  # Django автоматически установит cookie для сессии
+        login(request, user)
         random_key = str(uuid.uuid4())
         session_storage.set(random_key, username)
         request.session['random_key'] = random_key
-        # Ответ с успешным логином
-        return Response({'status': 'ok'})
+
+        return Response({'status': 'ok', 'id': user.id, 'username': user.username, 'is_superuser': user.is_superuser, 'is_staff': user.is_staff})
     else:
-        # Ошибка логина
         return Response({'status': 'error', 'error': 'login failed'}, status=400)
     
 @api_view(['POST'])
@@ -92,13 +91,6 @@ def logout_view(request):
     logout(request._request)
     return Response({'status': 'Success'})
 
-# Настройка MinIO клиента
-minio_client = Minio(
-    settings.MINIO_STORAGE_ENDPOINT,
-    access_key=settings.MINIO_STORAGE_ACCESS_KEY,
-    secret_key=settings.MINIO_STORAGE_SECRET_KEY,
-    secure=settings.MINIO_STORAGE_USE_HTTPS
-)
 
 class DiscovererList(APIView):
     
@@ -123,18 +115,24 @@ class DiscovererList(APIView):
         discoverers = Discoverers.objects.filter(status='active')
 
         # Фильтрация по имени, если оно передано в запросе
-        discoverer_name = request.data.get('discovererName')
+        discoverer_name = request.query_params.get('discovererName')
         if discoverer_name:
             discoverers = discoverers.filter(name__icontains=discoverer_name)
 
         # Сериализация данных
         serializer = DiscoverersSerializer(discoverers, many=True)
 
-        # Получение черновика для текущего пользователя
-        draft_discovery = Discovery.objects.filter(creator=request.user, status='draft').first()
-        draft_id = draft_discovery.id if draft_discovery else None
-        draft_count = draft_discovery.discoverydiscoverers_set.count() if draft_discovery else 0
+        draft_id = None
+        draft_count = 0
 
+        # Получение черновика для текущего пользователя
+        if request.user.is_authenticated:
+            draft_discovery = Discovery.objects.filter(creator=request.user, status='draft').first()
+            if draft_discovery:
+                draft_id = draft_discovery.id 
+                draft_count = draft_discovery.discoverydiscoverers_set.count()
+
+        
         # Ответ с данными
         return Response({
             'discoverers': serializer.data,
@@ -159,7 +157,7 @@ class DiscovererList(APIView):
     
 #Подробная информация о первооткрывателях
 class DiscoverersDetail(APIView):
-    permission_classes = [IsAuthenticated]
+    
     model_class = Discoverers
     serializer_class = DiscoverersSerializer
 
@@ -410,7 +408,7 @@ class DiscoverySubmitView(APIView):
             return Response("Поле region обязательно должно быть заполнено",status=status.HTTP_400_BAD_REQUEST)
 
         discovery.formed_at = timezone.now()
-        discovery.status = "submitted"
+        discovery.status = "formed"
         discovery.save()
         serializer = DiscoverySerializer(discovery)
         return Response(serializer.data)
@@ -433,10 +431,10 @@ class CompleteOrRejectDiscovery(APIView):
     )
 
 
-    @method_permission_classes([IsManager])
+    @method_permission_classes([IsAdmin])
     def put(self, request, pk):
         try:
-            discovery = Discovery.objects.get(pk=pk, status='submitted')
+            discovery = Discovery.objects.get(pk=pk, status='formed')
         except Discovery.DoesNotExist:
             return Response({"error": "Заявка не найдена или не находится в статусе ожидания модерации"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -444,62 +442,62 @@ class CompleteOrRejectDiscovery(APIView):
             return Response({"error": "Доступ запрещен, вы не являетесь модератором"}, status=status.HTTP_403_FORBIDDEN)
 
         action = request.data.get('action')
-        if action not in ['complete', 'reject']:
-            return Response({"error": "Неверное действие. Ожидается 'complete' или 'reject'"}, status=status.HTTP_400_BAD_REQUEST)
+        if action not in ['completed', 'rejected']:
+            return Response({"error": "Неверное действие. Ожидается 'completed' или 'rejected'"}, status=status.HTTP_400_BAD_REQUEST)
 
         discovery.moderator = request.user
         discovery.completed_at = timezone.now()
-        if action == 'complete':
+        if action == 'completed':
             discovery.status = 'completed'
-        elif action == 'reject':
+        elif action == 'rejected':
             discovery.status = 'rejected'
-
         discovery.save()
         serializer = DiscoverySerializer(discovery)
 
+        discovery.qr = generate_discovery_qr(discovery)
+        discovery.save()
+
         return Response({
-            "message": f"Заявка успешно {('завершена' if action == 'complete' else 'отклонена')}",
+            "message": f"Заявка успешно {('завершена' if action == 'completed' else 'отклонена')}",
             "data": serializer.data
         }, status=status.HTTP_200_OK)
     
 
 class UploadImageForDiscover(APIView):
+    model_class = Discoverers
+    serializer_class = DiscoverersSerializer
     permission_classes = [IsAuthenticated]
+
     @swagger_auto_schema(
-        operation_description="Update patronage image (logo) for a specific patronage",
+        operation_description="Upload or update an image for a discoverer",
         manual_parameters=[
-            openapi.Parameter('id', openapi.IN_PATH, description="ID of the patronage", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("pk", openapi.IN_PATH, description="ID of the discoverer", type=openapi.TYPE_INTEGER),
         ],
         request_body=DiscoverersSerializer,
         responses={
-            200: openapi.Response(description="Patronage image successfully updated", schema=DiscoverersSerializer),
+            200: openapi.Response(description="Image successfully updated", schema=DiscoverersSerializer),
             400: openapi.Response(description="Invalid data provided"),
-            403: openapi.Response(description="Forbidden, user is not staff"),
-        }
+            403: openapi.Response(description="Forbidden, user is not authorized"),
+        },
     )
+    @method_permission_classes([IsManager])
+    def post(self, request, pk, format=None):
+        discoverer = get_object_or_404(self.model_class, pk=pk)
+        serializer = self.serializer_class(discoverer, data=request.data, partial=True)
 
-    @method_permission_classes(IsAdmin)
-    def post(self, request, pk):
-        discoverer = get_object_or_404(Discoverers, pk=pk)
+        if "image" in request.FILES:
+            image_file = request.FILES["image"]
 
-        if discoverer.image_url:
-            try:
-                parsed_url = urlparse(discoverer.image_url)
-                object_name = parsed_url.path.lstrip('/')
-                minio_client.remove_object(settings.MINIO_STORAGE_BUCKET_NAME, object_name)
-            except S3Error as e:
-                return Response({'error': f'Ошибка в удалении старого изображения {str(e)}'},
-                                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        image = request.FILES.get('image')
-        if not image:
-            return Response({'error': 'Нет предоставленного изображения'}, status=status.HTTP_400_BAD_REQUEST)
+            # Загружаем новое изображение
+            upload_result = add_pic(discoverer, image_file)
+            if "error" in upload_result.data:
+                return upload_result
 
-        image_result = add_image(discoverer, image)
-        if 'error' in image_result.data:
-            return image_result
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
-        return Response({'message': 'Изображение успешно загружено', 'image_url': discoverer.image_url},
-                        status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UpdateDiscoveryDiscoverer(APIView):
@@ -535,12 +533,15 @@ class RemoveDiscovererFromDiscovery(APIView):
         return Response({"message": "Путешественник успешно удален из открытия."}, status=status.HTTP_200_OK)
     
 
-
 class UserUpdate(UpdateAPIView):
     queryset = User.objects.all()
     serializer_class = UserUpdateSerializer
     permission_classes = [IsAuthenticated]
+
     def get_object(self):
-        return self.request.user
+        return self.request.user  # Только текущий пользователь
+
+    def put(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
 
 
